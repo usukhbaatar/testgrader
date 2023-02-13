@@ -1,10 +1,11 @@
-#include<iostream>
-#include<vector>
-#include<algorithm>
-#include<cstdio>
-#include<cstdlib>
-#include<ctime>
-#include<cstring>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <cstring>
+#include <array>
 #include "team1.h"
 #include "team2.h"
 
@@ -19,7 +20,7 @@ int rounds;
 int score_A = 16, score_B = 16;
 int diffA = 0, diffB = 0;
 
-int H, W;
+int ID, H, W;
 int BID = 0;
 int id1, id2;
 bool initFailed = false;
@@ -91,25 +92,20 @@ vector<vector<int>> rot_map(vector<vector<int>> B) {
 	return B;
 }
 
+char rot_char(char c) {
+	char ret;
+	if (c == 'U') return 'D';
+	if (c == 'D') return 'U';
+	if (c == 'L') return 'R';
+	if (c == 'R') return 'L';
+	return c;
+}
+
 vector<pair<int, string>> rot_move(vector<pair<int, string>> B) {
 	for(int i = 0; i < 4; i++) {
 		B[i].first *= (-1);
 		for(int j = 1; j < B[i].second.size(); j++) {
-			char &tmp = B[i].second[j];
-			switch(tmp) {
-				case 'U':
-					tmp = 'D';
-					break;
-				case 'D':
-					tmp = 'U';
-					break;
-				case 'L':
-					tmp = 'R';
-					break;
-				case 'R':
-					tmp = 'L';
-					break;
-			}
+			B[i].second[j] = rot_char(B[i].second[j]);
 		}
 	}
 	return B;
@@ -880,7 +876,6 @@ void move(vector<pair<int, string>> &m1, vector<pair<int, string>> &m2) {
 	// change color
 	// change score
 	// extract map
-
 	vector<bool> does_hit(16);
 
 	vector<bool> deny_A(4, false);
@@ -1436,7 +1431,7 @@ void move(vector<pair<int, string>> &m1, vector<pair<int, string>> &m2) {
 }
 
 bool init() {
-	cin >> H >> W;
+	cin >> ID >> H >> W;
 
 	// resize
 	map.resize(H, vector<int>(W));
@@ -1469,8 +1464,8 @@ bool init() {
 	}
 
 	// init tanks
-	vector<int> type_A = init_A();
-	vector<int> type_B = init_B();
+	vector<int> type_A = init_A(ID);
+	vector<int> type_B = init_B(ID);
 
 	bool valid_A = ((int)type_A.size() == num_tanks);
 	bool valid_B = ((int)type_B.size() == num_tanks);
@@ -1570,12 +1565,19 @@ void play() {
 		diffA = 0;
 		diffB = 0;
 		cnt++;
-		m_A = move_A();
-		for (auto &i : m_A) {
+		vector<pair<char, pair<int, int>>> as, bs;
+		for (auto b : bullets) {
+			if (b.id < 0) bs.push_back({b.direction, {b.pos_x, b.pos_y}});
+			else as.push_back({rot_char(b.direction), {H - b.pos_x, W - b.pos_y}});
+		}
+		m_A = move_A(map, color, bs);
+		auto color1 = color;
+		for (auto &row : color) for (auto &item : row) item *= -1;
+		m_B = move_B(rot_map(map), color1, as);
+		for (auto &i : m_B) {
 			i.first += 10;
 		}
-		m_B = move_B();
-		for (auto &i : m_B) {
+		for (auto &i : m_A) {
 			i.first += 10;
 		}
 		
@@ -1603,10 +1605,8 @@ void play() {
 		}
 
 		m_B = rot_move(m_B);
-
 		// move
 		move(m_A, m_B);
-
 		for (int i = 0; i < num_tanks; i++) {
 			if (m_A[i].second == "G" || m_A[i].second[0] == 'F') continue;
 			char c = m_A[i].second[1];

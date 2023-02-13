@@ -2,7 +2,7 @@
 #include <string>
 using namespace std;
 
-vector<int> init_B() {
+vector<int> init_B(int map_id) {
 	vector<int> ret(4);
 	for(int i = 0; i < 4; i++) {
 		ret[i] = rand() % 3 + 1;

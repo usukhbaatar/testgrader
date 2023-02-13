@@ -1,8 +1,10 @@
 #include <vector>
 #include <string>
+#include <array>
+#include <iostream>
 using namespace std;
 
-vector<int> init_A() {
+vector<int> init_A(int map_id) {
 	vector<int> ret(4);
 	for(int i = 0; i < 4; i++) {
 		ret[i] = rand() % 3 + 1;
@@ -11,7 +13,10 @@ vector<int> init_A() {
 	return ret;
 }
 
-vector<pair<int, string>> move_A() {
+vector<pair<int, string>> move_A(
+	vector<vector<int>> M,
+	vector<vector<int>> C,
+	vector<pair<char, pair<int, int>>> B) {
 	string cmp = "GF";
 	string dir = "URDL";
 	vector<pair<int, string>> ret;
