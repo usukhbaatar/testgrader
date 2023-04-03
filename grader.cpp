@@ -1,11 +1,10 @@
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <cstdio>
-#include <cstdlib>
-#include <ctime>
-#include <cstring>
-#include <array>
+#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<cstdio>
+#include<cstdlib>
+#include<ctime>
+#include<cstring>
 #include "team1.h"
 #include "team2.h"
 
@@ -20,7 +19,7 @@ int rounds;
 int score_A = 16, score_B = 16;
 int diffA = 0, diffB = 0;
 
-int ID, H, W;
+int MAP_ID, H, W;
 int BID = 0;
 int id1, id2;
 bool initFailed = false;
@@ -105,7 +104,21 @@ vector<pair<int, string>> rot_move(vector<pair<int, string>> B) {
 	for(int i = 0; i < 4; i++) {
 		B[i].first *= (-1);
 		for(int j = 1; j < B[i].second.size(); j++) {
-			B[i].second[j] = rot_char(B[i].second[j]);
+			char &tmp = B[i].second[j];
+			switch(tmp) {
+				case 'U':
+					tmp = 'D';
+					break;
+				case 'D':
+					tmp = 'U';
+					break;
+				case 'L':
+					tmp = 'R';
+					break;
+				case 'R':
+					tmp = 'L';
+					break;
+			}
 		}
 	}
 	return B;
@@ -237,7 +250,6 @@ bool validate(vector<pair<int, string>> &m1, int p) {
 			if(!fl) {
 				change_tag(idx, p);
 			}
-			// cout << max_speed << " " << str << endl;
 		}
 	}
 	return 1;
@@ -876,6 +888,7 @@ void move(vector<pair<int, string>> &m1, vector<pair<int, string>> &m2) {
 	// change color
 	// change score
 	// extract map
+
 	vector<bool> does_hit(16);
 
 	vector<bool> deny_A(4, false);
@@ -1431,7 +1444,7 @@ void move(vector<pair<int, string>> &m1, vector<pair<int, string>> &m2) {
 }
 
 bool init() {
-	cin >> ID >> H >> W;
+	cin >> MAP_ID >> H >> W;
 
 	// resize
 	map.resize(H, vector<int>(W));
@@ -1464,8 +1477,8 @@ bool init() {
 	}
 
 	// init tanks
-	vector<int> type_A = init_A(ID);
-	vector<int> type_B = init_B(ID);
+	vector<int> type_A = init_A(MAP_ID);
+	vector<int> type_B = init_B(MAP_ID);
 
 	bool valid_A = ((int)type_A.size() == num_tanks);
 	bool valid_B = ((int)type_B.size() == num_tanks);
@@ -1481,8 +1494,6 @@ bool init() {
         if (type_B[i] < 1) type_B[i] = 1;
         if (type_B[i] > 3) type_B[i] = 3;
 	}
-    // cout << valid_A << ' ' << valid_B << endl;
-    // cout << type_A.size() << ' ' << type_B.size() << endl;
 
 	int xxx = is_valid(valid_A, valid_B);
 	if (xxx != 100) {
@@ -1552,14 +1563,114 @@ bool init() {
     return !initFailed;
 }
 
-void print_result() {
-	if (score_A > score_B) cout << "You Winner!\n";
-	else cout << "You Loser!\n";
-	cout << "- Your Score: " << score_A << endl;
-	cout << "- BOT Score:  " << score_B << endl;
+void print_map(FILE *f) {
+	fprintf(f, "\"map\": {\"height\": %d,\"width\": %d,\"values\": [", H, W);
+	for (int i = 0; i < H; i++) {
+		fprintf(f, "[");
+		for (int j = 0; j < W; j++) {
+			if (j < W - 1) fprintf(f, "%d, ", map[i][j]);
+			else if (i == H - 1) fprintf(f, "%d]],", map[i][j]);
+			else fprintf(f, "%d],", map[i][j]);
+		}
+	}
+	fprintf(f, "\"colors\": [");
+	for (int i = 0; i < H; i++) {
+		fprintf(f, "[");
+		for (int j = 0; j < W; j++) {
+			if (j < W - 1) fprintf(f, "%d, ", color[i][j]);
+			else if (i == H - 1) fprintf(f, "%d]]", color[i][j]);
+			else fprintf(f, "%d],", color[i][j]);
+		}
+	}
+	fprintf(f, "}");
 }
 
-void play() {
+void print_team1(FILE *f) {
+	string types[] = {"", "normal", "fast", "strong"};
+	fprintf(f, "\"team1\": {\"id\": %d, \"tanks\": [", id1);
+	for (int i = 0; i < 4; i++) {
+		fprintf(f, "{\"id\": %d, \"pos_x\": %d, \"pos_y\": %d, \"type\": \"%s\", \"health\": %d, \"speed\": %d, \"damage\": %d, \"bullet_speed\": 6}", i + 1, tanks_A[i].pos_y, tanks_A[i].pos_x, types[tanks_A[i].type].c_str(), tanks_A[i].health, tanks_A[i].speed, tanks_A[i].damage);
+		if (i < 3) fprintf(f, ", ");
+		else fprintf(f, "],");
+	}
+	fprintf(f, "\"base\": {\"pos_x\": %d, \"pos_y\": %d, \"heal_of_symbol\": %d}}", flag_A.pos_y, flag_A.pos_x, flag_A.health);
+}
+
+void print_team2(FILE *f) {
+	string types[] = {"", "normal", "fast", "strong"};
+	fprintf(f, "\"team2\": {\"id\": %d, \"tanks\": [", id2);
+	for (int i = 0; i < 4; i++) {
+		fprintf(f, "{\"id\": %d, \"pos_x\": %d, \"pos_y\": %d, \"type\": \"%s\", \"health\": %d, \"speed\": %d, \"damage\": %d, \"bullet_speed\": 6}", i + 1, tanks_B[i].pos_y, tanks_B[i].pos_x, types[tanks_B[i].type].c_str(), tanks_B[i].health, tanks_B[i].speed, tanks_B[i].damage);
+		if (i < 3) fprintf(f, ", ");
+		else fprintf(f, "],");
+	}
+	fprintf(f, "\"base\": {\"pos_x\": %d, \"pos_y\": %d, \"heal_of_symbol\": %d}}", flag_B.pos_y, flag_B.pos_x, flag_B.health);
+}
+
+void print_start(FILE *f) {
+	fprintf(f, "{");
+	print_map(f);
+	fprintf(f, ",");
+	print_team1(f);
+	fprintf(f, ",");
+	print_team2(f);
+}
+
+void print_round(FILE *f) {
+	string types[] = {"", "normal", "fast", "strong"};
+	fprintf(f, "{\"team1\": {\"tanks\": [");
+	for (int i = 0; i < 4; i++) {
+		fprintf(f, "{\"id\": %d, \"pos_x\": %d, \"pos_y\": %d, \"type\": \"%s\", \"health\": %d, \"speed\": %d, \"damage\": %d, \"bullet_speed\": 6, \"move\": \"%s\", \"fail\": %d}", i + 1, tanks_A[i].pos_y, tanks_A[i].pos_x, types[tanks_A[i].type].c_str(), max(0, tanks_A[i].health), tanks_A[i].speed, tanks_A[i].damage, m_A[i].second.c_str(), invalid_move_A[i]);
+		if (i < 3) fprintf(f, ", ");
+		else fprintf(f, "], ");
+	}
+	fprintf(f, "\"bullets\": [");
+	vector<bullet> TT;
+	for(auto& u : bullets) {
+		if(u.id > 0) {
+			TT.push_back(u);
+		}
+	}
+	for(int i = 0; i < (int) TT.size(); ++i) {
+		if(i) {
+			fprintf(f, ",");
+		}
+		fprintf(f, "{\"id\": %d, \"tank_id\": %d, \"pos_x\": %d, \"pos_y\": %d, \"direction\": \"%c\", \"speed\": 6, \"damage\": %d}", TT[i].bullet_id, TT[i].id - 9, TT[i].pos_y, TT[i].pos_x, TT[i].direction, TT[i].damage);
+	}
+	int diffTankScoreA = (diffA / tank_score) * tank_score;
+	int diffMoveScoreA = diffA % tank_score;
+	fprintf(f, "], \"score\": %d, \"move_score\": %d, \"tank_score\": %d, \"heal_of_symbol\": %d", score_A, diffMoveScoreA, diffTankScoreA, max(0, flag_A.health));
+	fprintf(f, "},");
+	// TEAM2 round
+	fprintf(f, "\"team2\": {\"tanks\": [");
+	for (int i = 0; i < 4; i++) {
+		fprintf(f, "{\"id\": %d, \"pos_x\": %d, \"pos_y\": %d, \"type\": \"%s\", \"health\": %d, \"speed\": %d, \"damage\": %d, \"bullet_speed\": 6, \"move\": \"%s\", \"fail\": %d}", i + 1, tanks_B[i].pos_y, tanks_B[i].pos_x, types[tanks_B[i].type].c_str(), max(0, tanks_B[i].health), tanks_B[i].speed, tanks_B[i].damage, m_B[i].second.c_str(), invalid_move_B[i]);
+		if (i < 3) fprintf(f, ", ");
+		else fprintf(f, "], ");
+	}
+	fprintf(f, "\"bullets\": [");
+	TT.clear();
+	for(auto& u : bullets) {
+		if(u.id < 0) {
+			TT.push_back(u);
+		}
+	}
+	for(int i = 0; i < (int) TT.size(); ++i) {
+		if(i) {
+			fprintf(f, ",");
+		}
+		fprintf(f, "{\"id\": %d, \"tank_id\": %d, \"pos_x\": %d, \"pos_y\": %d, \"direction\": \"%c\", \"speed\": 6, \"damage\": %d}", TT[i].bullet_id, TT[i].id + 9, TT[i].pos_y, TT[i].pos_x, TT[i].direction, TT[i].damage);
+	}
+	int diffTankScoreB = (diffB / tank_score) * tank_score;
+	int diffMoveScoreB = diffB % tank_score;
+	fprintf(f, "], \"score\": %d, \"move_score\": %d, \"tank_score\": %d, \"heal_of_symbol\": %d", score_B, diffMoveScoreB, diffTankScoreB, max(0, flag_B.health));
+	fprintf(f, "},");
+	print_map(f);
+	fprintf(f, "}");
+}
+
+void play(FILE *f) {
+	fprintf(f, ",\"rounds\": [");
 	int cnt = 0;
 	for(int _ = 0; _ < rounds; _++) {
 		diffA = 0;
@@ -1571,13 +1682,11 @@ void play() {
 			else as.push_back({rot_char(b.direction), {H - b.pos_x, W - b.pos_y}});
 		}
 		m_A = move_A(map, color, bs);
-		auto color1 = color;
-		for (auto &row : color) for (auto &item : row) item *= -1;
-		m_B = move_B(rot_map(map), color1, as);
-		for (auto &i : m_B) {
+		m_B = move_B(map, color, as);
+		for (auto &i : m_A) {
 			i.first += 10;
 		}
-		for (auto &i : m_A) {
+		for (auto &i : m_B) {
 			i.first += 10;
 		}
 		
@@ -1605,8 +1714,10 @@ void play() {
 		}
 
 		m_B = rot_move(m_B);
+
 		// move
 		move(m_A, m_B);
+
 		for (int i = 0; i < num_tanks; i++) {
 			if (m_A[i].second == "G" || m_A[i].second[0] == 'F') continue;
 			char c = m_A[i].second[1];
@@ -1625,6 +1736,10 @@ void play() {
 			while (dis--) m_B[i].second.push_back(c);
 		}
 
+		if(_) {
+			fprintf(f, ",");
+		}
+		print_round(f);
 		if(!flag_A.alive || !flag_B.alive) {
 			if (!flag_B.alive) {
 				score_A = 9999;
@@ -1654,21 +1769,29 @@ void play() {
     if (initFailed) {
         error = 1;
         message = "Initialization failed!";
-        cout << message << endl;
-        exit(1);
     }
 	int winner = 0;
 	if (score_A > score_B) winner = 1;
 	else if (score_B > score_A) winner = 2;
+	fprintf(f, "], \"number_of_rounds\": %d, \"error\": %d, \"message\": \"%s\", \"winner\": %d, \"team1_final_score\": %d, \"team2_final_score\": %d}", cnt, error, message.c_str(), winner, score_A, score_B);
+	printf("success");
+}
+
+void print_result() {
+	if (score_A > score_B) cout << "You Winner!\n";
+	else cout << "You Loser!\n";
+	cout << "- Your Score: " << score_A << endl;
+	cout << "- BOT Score:  " << score_B << endl;
 }
 
 int main(int argc, char** argv) {
 	srand(time(0));
-	id1 = 1;
-	id2 = 2;
-	srand(time(0));
-	bool res = init();
-    play();
-    print_result();
+	id1 = 1; id2 = 2;
+	init();
+	FILE *f = fopen("out.json", "w");
+	print_start(f);
+	play(f);
+	fclose(f);
+	print_result();
 	return 0;
 }
