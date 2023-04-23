@@ -1682,7 +1682,7 @@ void play(FILE *f) {
 			else as.push_back({rot_char(b.direction), {H - b.pos_x, W - b.pos_y}});
 		}
 		m_A = move_A(map, color, bs);
-		m_B = move_B(map, color, as);
+		m_B = move_B(rot_map(map), color, as);
 		for (auto &i : m_A) {
 			i.first += 10;
 		}
